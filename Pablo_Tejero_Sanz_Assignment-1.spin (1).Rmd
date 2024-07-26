@@ -1,0 +1,385 @@
+
+
+                         # PABLO TEJERO SANZ     #
+                         #  i6329819             #
+                         # Experimental Design   #
+                         # & Data management     #
+                         #########################
+
+First we load all the libraries needed for the project.
+```{r }                         
+library(ggplot2)
+library(tidyr)
+library(pcaMethods)
+library(dplyr)
+library(limma)
+library(biomaRt)
+```
+
+################################################################################
+################################ PART 1 #######################################
+###############################################################################
+
+############ IMPORT ALL THE DATA FILES #########################################
+
+First we have to set the working directory, for that we can use 2 ways, first, set
+manually the working directory, or second, set it automatically.
+```{r }
+setwd("~/Systems Biology master/Period 2/Experimental Design and Data Management/Assignment")
+
+# or in this other way
+
+setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+```
+
+After setting the working directory, we load the data in three different variables 
+```{r }
+gxData <- read.delim("MAGNET_GX_Assignment_2022/MAGNET_GeneExpressionData_CPM_19112020.txt", row.names = 1)
+ExonLData <- read.delim("MAGNET_GX_Assignment_2022/MAGNET_exonLengths.txt", row.names = 1)
+sampleInfo <- read.csv("MAGNET_GX_Assignment_2022/MAGNET_Sampledata_18112022.csv", row.names = 1)
+```
+
+################# EXPORT A PUBLICATION READY TABLE #############################
+
+Create 4 variables indicating each one TRUE to all the patients with the 
+different etiologies
+```{r }
+DCM_pos = sampleInfo$etiology == "DCM"
+HCM_pos = sampleInfo$etiology == "HCM"
+PPCM_pos = sampleInfo$etiology == "PPCM"
+Healthy_pos = sampleInfo$etiology == "NF"
+```
+Now I show the HCM, DCM, PPCM, and healthy with their gene expression 
+in those variables 
+```{r }
+genehcm = gxData[,HCM_pos]
+genedcm = gxData[,DCM_pos]
+geneppcm = gxData[,PPCM_pos]
+genehealthy = gxData[,Healthy_pos]
+```
+After that, sum all the pacients with the different pathologies.
+```{r }
+sum_DCM = sum(DCM_pos)
+sum_HCM = sum(HCM_pos)
+sum_PPCM = sum(PPCM_pos)
+sum_Healthy = sum(Healthy_pos)
+```
+
+Now calculate the age mean of every etiology, the variance and 
+the standard deviation.
+```{r }
+DCM_Age_Mean =  round(mean(sampleInfo[(sampleInfo[,2] == "DCM"), 5]), 2)
+HCM_Age_Mean = round(mean(sampleInfo[(sampleInfo[,2] == "HCM"), 5]), 2)
+PPCM_Age_Mean =  round(mean(sampleInfo[(sampleInfo[,2] == "PPCM"), 5]), 2)
+Healthy_Age_Mean = round(mean(sampleInfo[(sampleInfo[, 2] == "NF"), 5]), 2)
+
+DCM_Age_Var = round(var(sampleInfo[(sampleInfo[,2] == "DCM"), 5]), 2)
+HCM_Age_Var = round(sd(sampleInfo[(sampleInfo[,2] == "HCM"), 5]), 2)
+PPCM_Age_Var = round(sd(sampleInfo[(sampleInfo[,2] == "PPCM"), 5]), 2)
+Healthy_Age_Var = round(sd(sampleInfo[(sampleInfo[,2] == "NF"), 5]), 2)
+
+
+DCM_Age_SD  = round(sd(sampleInfo[(sampleInfo[,2] == "DCM"), 5]), 2)
+HCM_Age_SD  = round(sd(sampleInfo[(sampleInfo[,2] == "HCM"), 5]), 2)
+PPCM_Age_SD = round(sd(sampleInfo[(sampleInfo[,2] == "PPCM"), 5]), 2)
+Healthy_Age_SD = round(sd(sampleInfo[(sampleInfo[,2] == "NF"), 5]), 2)
+```
+
+Create a variable to store the mean value withe the variance and standard 
+deviation values too.
+
+```{r }
+DCM_Age_Data_SD = paste(DCM_Age_Mean, "(", DCM_Age_SD, ")")
+HCM_Age_Data_SD  = paste(HCM_Age_Mean, "(", HCM_Age_SD, ")")
+PPCM_Age_Data_SD = paste(PPCM_Age_Mean, "(", PPCM_Age_SD, ")")
+Healthy_Age_Data_SD = paste(Healthy_Age_Mean, "(", Healthy_Age_SD, ")")
+
+
+DCM_Age_Data_Var = paste(DCM_Age_Mean, "(", DCM_Age_Var, ")")
+HCM_Age_Data_Var  = paste(HCM_Age_Mean, "(", HCM_Age_Var, ")")
+PPCM_Age_Data_Var = paste(PPCM_Age_Mean, "(", PPCM_Age_Var, ")")
+Healthy_Age_Data_Var = paste(Healthy_Age_Mean, "(", Healthy_Age_Var, ")")
+```
+
+Separate also by gender, to see how many Men and Women have each etiology.
+
+```{r }
+DCM_Male = sum(sampleInfo[,2] == "DCM" & sampleInfo[,3] == "Male")
+DCM_Female = sum_DCM - DCM_Male
+HCM_Male   = sum(sampleInfo[,2] == "HCM" & sampleInfo[,3] == "Male")
+HCM_Female = sum_HCM - HCM_Male
+PPCM_Male = sum(sampleInfo[,2] == "PPCM" & sampleInfo[,3] == "Male")
+PPCM_Female = sum_PPCM - PPCM_Male
+Healthy_Male  = sum(sampleInfo[,2] == "NF" & sampleInfo[,3] == "Male")
+Healthy_Female = sum_Healthy - Healthy_Male
+```
+
+After that we create the descriptive table.
+
+```{r }
+Condition = c(sum_DCM, sum_HCM, sum_PPCM, sum_Healthy)
+Male = c(DCM_Male, HCM_Male, PPCM_Male, Healthy_Male)
+Female = c(DCM_Female, HCM_Female, PPCM_Female, Healthy_Female)
+Agesd = c(DCM_Age_Data_SD, HCM_Age_Data_SD, PPCM_Age_Data_SD, Healthy_Age_Data_SD)
+Agevar = c(DCM_Age_Data_Var, HCM_Age_Data_Var, PPCM_Age_Data_Var, Healthy_Age_Data_Var)
+
+
+Table1 = cbind(Condition = Condition, Male = Male, Female = Female, Agesd = Agesd, Agevar = Agevar)
+Table1RowNames = c("DCM", "HCM", "PPCM", "Healthy")
+Table1ColNames = c("Total Patients", "Male Patients", "Female Patients", "Mean Age (SD)", "Mean Age (Var)")
+rownames(Table1) = Table1RowNames
+colnames(Table1) = Table1ColNames
+```
+
+################################################################################
+###################### PART 2 ##################################################
+################################################################################
+
+In the first part, I already calculate the parameters that we need to do the plots
+now, create the plots and save them as PDFs.
+```{r }
+Plotdata = gather(genehcm, key = "HCM_patients", value = "gene_expression")
+pdf(file = "HCM_plot.pdf")
+par(mfrow = c(2,1))
+ggplot(Plotdata, aes(x = HCM_patients, y = gene_expression)) +
+  geom_boxplot()
+ggplot(Plotdata, aes(x = HCM_patients, y = gene_expression)) +
+  geom_violin()
+dev.off()
+
+
+Plotdata = gather(genedcm, key = "DCM_patients", value = "gene_expression")
+pdf(file = "DCM_plot.pdf")
+par(mfrow = c(2,1))
+ggplot(Plotdata, aes(x = DCM_patients, y = gene_expression)) +
+  geom_boxplot()
+ggplot(Plotdata, aes(x = DCM_patients, y = gene_expression)) +
+  geom_violin()
+dev.off()
+
+
+Plotdata = gather(geneppcm, key = "PPCM_patients", value = "gene_expression")
+pdf(file = "PPCM_plot.pdf")
+par(mfrow = c(2,1)) 
+ggplot(Plotdata, aes(x = PPCM_patients, y = gene_expression)) +
+  geom_boxplot()
+ggplot(Plotdata, aes(x = PPCM_patients, y = gene_expression)) +
+  geom_violin()
+dev.off()
+
+
+Plotdata = gather(genehealthy, key = "HEALTHY_patients", value = "gene_expression")
+pdf(file = "HEALTHY_plot.pdf")
+par(mfrow = c(2,1))
+ggplot(Plotdata, aes(x = HEALTHY_patients, y = gene_expression)) +
+  geom_boxplot()
+ggplot(Plotdata, aes(x = HEALTHY_patients, y = gene_expression)) +
+  geom_violin()
+dev.off()
+```
+
+############################## PCA FIGURE ######################################
+
+To be able to do the PCA, we need to adjust some parameters
+```{r }
+pca_data = pca(t(gxData), nPcs = 10)
+```
+
+Now I plot the pca data
+
+```{r }
+all(rownames(pca_data@scores) == sampleInfo[, 1])
+plotData <- cbind(data.frame(pca_data@scores), sampleInfo)
+pdf("PCA_plot.pdf")
+ggplot(plotData, aes(x = PC1, y = PC2)) + 
+  geom_point(aes(size = 3, col = etiology))
+ggplot(plotData, aes(x = PC1, y = PC2)) + 
+  geom_point(aes(size = age, col = etiology))
+ggplot(plotData, aes(x = PC1, y = PC3)) + 
+  geom_point(aes(size = age, col = gender))
+ggplot(plotData, aes(x = PC2, y = PC3)) + 
+  geom_point(aes(size = age, col = race))
+dev.off()
+```
+################################################################################
+####################### PART 3: STATISTICAL ANALYSIS ###########################
+################################################################################
+
+
+```{r }
+require(limma)
+design = model.matrix(~ 0 + etiology + gender + age, data = sampleInfo)
+fit = lmFit(gxData, design)
+```
+
+In all of them, we create a contrast, and a Bayes correction to 
+
+For DCM
+```{r }
+cont.matrix_DCM = makeContrasts(DCMvsControl = etiologyDCM - etiologyNF, levels =  design)
+
+#diría que apartir de aquí es lo de la covarianza.
+fit_DCM = contrasts.fit(fit, cont.matrix_DCM)
+ebFit_DCM = eBayes(fit_DCM, trend = TRUE)
+dgeRes_DCM = topTable(ebFit_DCM, coef = 'DCMvsControl', number = nrow(gxData))
+```
+
+For HCM
+
+```{r }
+cont.matrix_HCM = makeContrasts(HCMvsControl = etiologyHCM - etiologyNF, levels =  design)
+fit_HCM = contrasts.fit(fit, cont.matrix_HCM)
+ebFit_HCM = eBayes(fit_HCM, trend = TRUE)
+dgeRes_HCM = topTable(ebFit_HCM, coef = 'HCMvsControl', number = nrow(gxData))
+```
+
+For PPCM
+
+```{r }
+cont.matrix_PPCM = makeContrasts(PPCMvsControl = etiologyPPCM - etiologyNF, levels =  design)
+fit_PPCM = contrasts.fit(fit, cont.matrix_PPCM)
+ebFit_PPCM = eBayes(fit_PPCM, trend = TRUE)
+dgeRes_PPCM = topTable(ebFit_PPCM, coef = 'PPCMvsControl', number = nrow(gxData))
+```
+
+
+################################################################################
+####################### PART 4 #################################################
+################################################################################
+
+
+######## RETRIEVE GENE SYMBOLS AND GENE NAMES BASED ON ENSEMBL #################
+
+I loaded the data from ensembl, using biomart package, specially the homo sapiens
+dataset. Also select the ids from the dataset I have to compare it, and in relation
+to them, compare it and, those oneas that are in the ensembl dataset and mine, store
+their different notation in a variable.
+
+```{r }
+ensembl = useMart("ensembl", dataset = "hsapiens_gene_ensembl")
+
+ensembl_geneid = rownames(gxData)
+
+affyids = c("ensembl_gene_id", "external_gene_name", "hgnc_symbol")
+results_ensembl = getBM(attributes = affyids,
+                        filters = "ensembl_gene_id",
+                        values = ensembl_geneid,
+                        mart = ensembl)
+```
+##### MERGE THE ADDITIONAL ANNOTATION WITH THE GENE EXPRESSION DATA OBJECT #####
+
+Once I have the variable with the different notation, I add it to my dataset, in 
+order to improve the understanding of my dataset. For that I compare the rownames 
+and the gene_ids from the ensembl, because they are equal.
+
+```{r }
+rownames(results_ensembl) = results_ensembl$ensembl_gene_id
+results_ensembl_rownames = select(results_ensembl, -ensembl_gene_id)
+merge_results_ensembl = merge(results_ensembl_rownames, gxData, by = "row.names")
+```
+
+################################################################################
+############################# PART 5 ###########################################
+################################################################################
+
+
+################# TRANSFORM TO FPMK ############################################
+
+```{r }
+cpm2fpkm <- function(x) {
+  ExonLData_kb <- ExonLData[, 1] / 1E3
+  .t <- 2^(x) / ExonLData_kb
+}  
+gxData_fpkm = cpm2fpkm(gxData) 
+```
+
+################################## B ##########################################
+As I did before, I load the data from ensembl, searching for different attributes, 
+one f it is the chormosome name, we are interested in select just the Y chromosome, 
+Which I store in y_ch_genes, and after that, select their ensembl_gene_id.
+
+```{r }
+ensembl = useMart("ensembl", dataset = "hsapiens_gene_ensembl")
+filters = listFilters(mart = ensembl)
+### esto de mujeres
+female_gene_data = getBM(attributes = c("ensembl_gene_id", "external_gene_name", "chromosome_name"),
+                         filters = "ensembl_gene_id",
+                         values = row.names(gxData),
+                         mart = ensembl)
+
+y_ch_genes <- female_gene_data[female_gene_data$chromosome_name == "Y",]
+
+y_ch_genes = y_ch_genes$ensembl_gene_id
+```
+
+Select samples from female. For that you select the female patients from sampleInfo, 
+after that select their gene_ids, and select their genes from the gxData dataset, which has been
+converted to fpkm.
+
+```{r }
+sample_female = sampleInfo[sampleInfo$gender == "Female",]
+
+sample_ids_female = row.names(sample_female)
+
+gx_females <- select(gxData_fpkm, sample_ids_female)
+```
+
+Select y ch genes from female. And after that, calculate the mean of the female gene expression,
+The mean of each row in my dataset, and finally compare the row mean with the establish value
+To see if the expression is above or under that value
+```{r }
+genes_y_female = filter(gx_females, row.names(gx_females) %in% y_ch_genes)
+
+gene_y_female_v = unlist(genes_y_female)
+mean_female = mean(gene_y_female_v)
+
+gxData_fpkm_mean = rowMeans(gxData_fpkm)
+gxData_fpkm_comp = ifelse(gxData_fpkm_mean>mean_female, "Above", "Under")
+```
+
+I added it to the gxData_fpkm dataframe
+```{r }
+gxData_fpkm = cbind(gxData_fpkm, gxData_fpkm_mean = gxData_fpkm_mean)
+gxData_fpkm = cbind(gxData_fpkm, gxData_fpkm_comp = gxData_fpkm_comp)
+```
+
+Other way I think it can work is. Using a t.test to compare the row means
+with a establish value (mu)
+```{r }
+t.test(gxData_fpkm_mean, mu = mean_female)
+```
+
+The problem is that, like this, it calculates the mean of all the rows 
+thogheter, and not individualy for every row.
+
+
+################################################################################
+#################### PART 6: EXPORT DATA ########################################
+################################################################################
+
+To export the data, I want to export it in a tsv format, so for that I use the write.table
+function, which allows us to determine what type of separation do we want
+
+
+```{r }
+write.table(gxData, "gxData.tsv", sep = "\t")
+write.table(gxData_fpkm, "gxData_fpkm.tsv", sep = "\t")
+```
+
+I define a final table with all the statistical and descriptive data done 
+during the project
+```{r }
+FinalTable = cbind("Mean expression of gxData expressed as fpkm" = gxData_fpkm_mean, "Comparation with respecto to the noise level" = gxData_fpkm_comp)
+
+FinalTable = merge(results_ensembl_rownames, FinalTable, by = "row.names")
+```
+
+After this, I tried to merge also the data from dgRes data.frames from the different
+etiologies, but I had some problems doing it.
+
+---
+title: Pablo_Tejero_Sanz_Assignment.R
+author: PC
+date: '2022-12-23'
+
+---
