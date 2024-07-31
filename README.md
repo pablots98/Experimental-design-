@@ -13,3 +13,9 @@ non-failing healthy donors, Peripartum cardiomyopathy (PPCM), Hypertrophic
 cardiomyopathy (HCM) and Dilated cardiomyopathy (DCM) patients. Next to the RNA-
 sequencing data (in log2-transformed CPM values), extensive participant information is
 available (age, sex, ethnicity, disease state, and so on).
+## Clone repository 
+```bash
+git clone https://github.com/pablots98/Experimental-design-.git
+cd Experimental-design-
+pip install -r requirements.txt
+```
